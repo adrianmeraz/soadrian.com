@@ -1,0 +1,22 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required files
+        run: test -s dist/index.html && test -s dist/styles.css && test -s dist/script.js
+      - name: Check internal asset references
+        run: |
+          for asset in $(grep -oE 'assets/[A-Za-z0-9._-]+' dist/index.html | sort -u); do
+            test -f "dist/$asset" || { echo "Missing dist/$asset"; exit 1; }
+          done
+      - name: Reject accidental secrets
+        run: |
+          ! grep -RIE '(AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)' . --exclude-dir=.git
