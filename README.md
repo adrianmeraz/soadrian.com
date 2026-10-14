@@ -21,7 +21,7 @@ Then open `http://localhost:4173`.
 
 ## Deployment
 
-The production artifact is the `dist/` directory. ChatGPT Sites deploys the same committed source state that is mirrored to GitHub.
+The production artifact is the `dist/` directory. Every push to `main` runs repository checks and deploys the exact committed artifact to GitHub Pages. The apex custom domain is declared in `dist/CNAME`.
 
 ## Design notes
 
