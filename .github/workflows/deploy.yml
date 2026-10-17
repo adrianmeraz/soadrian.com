@@ -7,25 +7,54 @@ on:
 
 permissions:
   contents: read
-  pages: write
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: production
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: https://soadrian.com
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          path: dist
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_PROD }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Initialize Terraform
+        working-directory: infrastructure/environments/prod
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=soadrian-com-tfstate" \
+            -backend-config="key=prod/terraform.tfstate" \
+            -backend-config="dynamodb_table=soadrian-com-tflock" \
+            -backend-config="region=us-east-1"
+
+      - name: Apply infrastructure
+        working-directory: infrastructure/environments/prod
+        run: terraform apply -input=false -auto-approve
+
+      - name: Read deployment targets
+        id: terraform
+        working-directory: infrastructure/environments/prod
+        shell: bash
+        run: |
+          echo "bucket=$(terraform output -raw site_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "distribution=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload site
+        run: aws s3 sync dist "s3://${{ steps.terraform.outputs.bucket }}" --delete
+
+      - name: Refresh CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${{ steps.terraform.outputs.distribution }}" --paths "/*"

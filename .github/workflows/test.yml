@@ -20,3 +20,16 @@ jobs:
       - name: Reject accidental secrets
         run: |
           ! grep -RIE '(AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)' . --exclude-dir=.git
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.9.5"
+      - run: terraform fmt -check -recursive infrastructure
+      - run: terraform -chdir=infrastructure init -backend=false
+      - run: terraform -chdir=infrastructure validate
+      - run: terraform -chdir=infrastructure/environments/prod init -backend=false
+      - run: terraform -chdir=infrastructure/environments/prod validate
