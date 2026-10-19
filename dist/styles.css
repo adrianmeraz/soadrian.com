@@ -100,6 +100,7 @@ nav {
 }
 nav a:not(.nav-cta) { padding: .6rem 0; border-bottom: 3px solid transparent; }
 nav a:not(.nav-cta):hover { color: var(--cyan); border-color: var(--magenta); }
+.product-link { color: var(--cyan); }
 .nav-cta {
   padding: .85rem 1rem;
   color: var(--ink);
@@ -462,7 +463,8 @@ footer a { color:var(--cyan); }
 
 @media (max-width: 700px) {
   .site-header { min-height:74px; }
-  .site-header nav>a:not(.nav-cta) { display:none; }
+  .site-header nav>a:not(.nav-cta):not(.product-link) { display:none; }
+  .product-link { font-size:.47rem; }
   .nav-cta { font-size:.47rem; padding:.75rem; }
   .hero { min-height:auto; padding-block:5rem 6rem; }
   .hero::before { top:1.4rem; }
